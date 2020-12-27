@@ -1,8 +1,10 @@
+import opcodes as op
+
 __all__ = ["fetch", "decode"]
 
 
-def fetch(byteprog):
-    return byteprog[:2], byteprog[2:]
+def fetch(p_id, byteprog):
+    return byteprog[2 * p_id:2 * p_id + 2]
 
 
 def decode(bytes):
@@ -16,69 +18,68 @@ def decode(bytes):
 
     if w[0] == 0x0:
         if w_int == 0x00E0:
-            opcode_id = 1
+            opcode_id = op.OP_00E0
         elif w_int == 0x00EE:
-            opcode_id = 2
+            opcode_id = op.OP_00EE
         else:
-            opcode_id = 0
+            opcode_id = op.OP_0NNN
     elif w[0] == 0x1:
-        opcode_id = 3
+        opcode_id = op.OP_1NNN
     elif w[0] == 0x2:
-        opcode_id = 4
+        opcode_id = op.OP_2NNN
     elif w[0] == 0x3:
-        opcode_id = 5
+        opcode_id = op.OP_3XNN
     elif w[0] == 0x4:
-        opcode_id = 6
+        opcode_id = op.OP_4XNN
     elif w[0] == 0x5:
-        opcode_id = 7
+        opcode_id = op.OP_5XY0
     elif w[0] == 0x6:
-        opcode_id = 8
+        opcode_id = op.OP_6XNN
     elif w[0] == 0x7:
-        opcode_id = 9
+        opcode_id = op.OP_7XNN
     elif w[0] == 0x8:
         opcode_id = OPCODE_8_IDS[w[-1]]
     elif w[0] == 0x9:
-        opcode_id = 19
+        opcode_id = op.OP_9XY0
     elif w[0] == 0xA:
-        opcode_id = 20
+        opcode_id = op.OP_ANNN
     elif w[0] == 0xB:
-        opcode_id = 21
+        opcode_id = op.OP_BNNN
     elif w[0] == 0xC:
-        opcode_id = 22
+        opcode_id = op.OP_CXNN
     elif w[0] == 0xD:
-        opcode_id = 23
+        opcode_id = op.OP_DXYN
     elif w[0] == 0xE:
         if w[-1] == 0xE:
-            opcode_id = 24
+            opcode_id = op.OP_EX9E
         elif w[-1] == 0x1:
-            opcode_id = 25
+            opcode_id = op.OP_EXA1
     elif w[0] == 0xF:
         if w[3] == 0x0:
             if w[4] == 0x7:
-                opcode_id = 26
+                opcode_id = op.OP_FX07
             elif w[4] == 0xA:
-                opcode_id = 27
+                opcode_id = op.OP_FX0A
         elif w[3] == 0x1:
             if w[4] == 0x5:
-                opcode_id = 28
+                opcode_id = op.OP_FX15
             elif w[4] == 0x8:
-                opcode_id = 29
+                opcode_id = op.OP_FX18
             elif w[4] == 0xE:
-                opcode_id = 30
+                opcode_id = op.OP_FX1E
         elif w[3] == 0x2:
-            opcode_id = 31
+            opcode_id = op.OP_FX29
         elif w[3] == 0x3:
-            opcode_id = 32
+            opcode_id = op.OP_FX33
         elif w[3] == 0x5:
-            opcode_id = 33
+            opcode_id = op.OP_FX55
         elif w[3] == 0x6:
-            opcode_id = 34
+            opcode_id = op.OP_FX65
 
     if opcode_id == -1:
         invalid_opcode(w)
 
     return opcode_id, OPCODE_ID_TO_DECODER[opcode_id](bytes)
-
 
 
 def decode_words(code, f=1, t=-1):
@@ -177,52 +178,51 @@ OPCODE_PATTERNS = {
 }
 
 OPCODE_ID_TO_DECODER = {
-    0: decode_address,
-    1: lambda c: None,  # Nothing to decode
-    2: lambda c: None,  # Nothing to decode
-    3: decode_address,
-    4: decode_address,
-    5: decode_reg_id_and_address,
-    6: decode_reg_id_and_address,
-    7: decode_double_reg_id,
-    8: decode_reg_id_and_address,
-    9: decode_reg_id_and_address,
-    10: decode_double_reg_id,
-    11: decode_double_reg_id,
-    12: decode_double_reg_id,
-    13: decode_double_reg_id,
-    14: decode_double_reg_id,
-    15: decode_double_reg_id,
-    16: decode_double_reg_id,
-    17: decode_double_reg_id,
-    18: decode_double_reg_id,
-    19: decode_double_reg_id,
-    20: decode_address,
-    21: decode_address,
-    22: decode_reg_id_and_address,
-    23: decode_double_reg_id_and_address,
-    24: decode_reg_id,
-    25: decode_reg_id,
-    26: decode_reg_id,
-    27: decode_reg_id,
-    28: decode_reg_id,
-    29: decode_reg_id,
-    30: decode_reg_id,
-    31: decode_reg_id,
-    32: decode_reg_id,
-    33: decode_reg_id,
-    34: decode_reg_id,
+    op.OP_0NNN: decode_address,
+    op.OP_00E0: lambda c: None,  # Nothing to decode
+    op.OP_00EE: lambda c: None,  # Nothing to decode
+    op.OP_1NNN: decode_address,
+    op.OP_2NNN: decode_address,
+    op.OP_3XNN: decode_reg_id_and_address,
+    op.OP_4XNN: decode_reg_id_and_address,
+    op.OP_5XY0: decode_double_reg_id,
+    op.OP_6XNN: decode_reg_id_and_address,
+    op.OP_7XNN: decode_reg_id_and_address,
+    op.OP_8XY0: decode_double_reg_id,
+    op.OP_8XY1: decode_double_reg_id,
+    op.OP_8XY2: decode_double_reg_id,
+    op.OP_8XY3: decode_double_reg_id,
+    op.OP_8XY4: decode_double_reg_id,
+    op.OP_8XY5: decode_double_reg_id,
+    op.OP_8XY6: decode_double_reg_id,
+    op.OP_8XY7: decode_double_reg_id,
+    op.OP_8XYE: decode_double_reg_id,
+    op.OP_9XY0: decode_double_reg_id,
+    op.OP_ANNN: decode_address,
+    op.OP_BNNN: decode_address,
+    op.OP_CXNN: decode_reg_id_and_address,
+    op.OP_DXYN: decode_double_reg_id_and_address,
+    op.OP_EX9E: decode_reg_id,
+    op.OP_EXA1: decode_reg_id,
+    op.OP_FX07: decode_reg_id,
+    op.OP_FX0A: decode_reg_id,
+    op.OP_FX15: decode_reg_id,
+    op.OP_FX18: decode_reg_id,
+    op.OP_FX1E: decode_reg_id,
+    op.OP_FX29: decode_reg_id,
+    op.OP_FX33: decode_reg_id,
+    op.OP_FX55: decode_reg_id,
+    op.OP_FX65: decode_reg_id,
 }
 
 OPCODE_8_IDS = {
-    0x0: 10,
-    0x1: 11,
-    0x2: 12,
-    0x3: 13,
-    0x4: 14,
-    0x5: 15,
-    0x6: 16,
-    0x7: 17,
-    0xE: 18,
-
+    0x0: op.OP_8XY0,
+    0x1: op.OP_8XY1,
+    0x2: op.OP_8XY2,
+    0x3: op.OP_8XY3,
+    0x4: op.OP_8XY4,
+    0x5: op.OP_8XY5,
+    0x6: op.OP_8XY6,
+    0x7: op.OP_8XY7,
+    0xE: op.OP_8XYE,
 }
