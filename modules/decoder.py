@@ -1,4 +1,4 @@
-import opcodes as op
+import modules.opcodes as op
 
 __all__ = ["fetch", "decode"]
 
@@ -18,63 +18,63 @@ def decode(bytes):
 
     if w[0] == 0x0:
         if w_int == 0x00E0:
-            opcode_id = op.OP_00E0
+            opcode_id = op.OP_00E0  # Clear screen
         elif w_int == 0x00EE:
-            opcode_id = op.OP_00EE
+            opcode_id = op.OP_00EE  # Return
         else:
-            opcode_id = op.OP_0NNN
+            opcode_id = op.OP_0NNN  # Call machine code routine
     elif w[0] == 0x1:
-        opcode_id = op.OP_1NNN
+        opcode_id = op.OP_1NNN  # GOTO
     elif w[0] == 0x2:
-        opcode_id = op.OP_2NNN
+        opcode_id = op.OP_2NNN  # Call subroutine
     elif w[0] == 0x3:
-        opcode_id = op.OP_3XNN
+        opcode_id = op.OP_3XNN  # Cond eq
     elif w[0] == 0x4:
-        opcode_id = op.OP_4XNN
+        opcode_id = op.OP_4XNN  # Cond ne
     elif w[0] == 0x5:
-        opcode_id = op.OP_5XY0
+        opcode_id = op.OP_5XY0  # Cond reg eq
     elif w[0] == 0x6:
-        opcode_id = op.OP_6XNN
+        opcode_id = op.OP_6XNN  # Const/set
     elif w[0] == 0x7:
-        opcode_id = op.OP_7XNN
+        opcode_id = op.OP_7XNN  # Add-assign
     elif w[0] == 0x8:
-        opcode_id = OPCODE_8_IDS[w[-1]]
+        opcode_id = OPCODE_8_IDS[w[-1]]  # Different assignments
     elif w[0] == 0x9:
-        opcode_id = op.OP_9XY0
+        opcode_id = op.OP_9XY0  # Cond req ne
     elif w[0] == 0xA:
-        opcode_id = op.OP_ANNN
+        opcode_id = op.OP_ANNN  # Set address
     elif w[0] == 0xB:
-        opcode_id = op.OP_BNNN
+        opcode_id = op.OP_BNNN  # Jump
     elif w[0] == 0xC:
-        opcode_id = op.OP_CXNN
+        opcode_id = op.OP_CXNN  # Rand
     elif w[0] == 0xD:
-        opcode_id = op.OP_DXYN
+        opcode_id = op.OP_DXYN  # Draw sprite
     elif w[0] == 0xE:
         if w[-1] == 0xE:
-            opcode_id = op.OP_EX9E
+            opcode_id = op.OP_EX9E  # Skip next if key
         elif w[-1] == 0x1:
-            opcode_id = op.OP_EXA1
+            opcode_id = op.OP_EXA1  # Skip next if not key
     elif w[0] == 0xF:
         if w[3] == 0x0:
             if w[4] == 0x7:
-                opcode_id = op.OP_FX07
+                opcode_id = op.OP_FX07  # Timer
             elif w[4] == 0xA:
-                opcode_id = op.OP_FX0A
+                opcode_id = op.OP_FX0A  # Wait + assign key press
         elif w[3] == 0x1:
             if w[4] == 0x5:
-                opcode_id = op.OP_FX15
+                opcode_id = op.OP_FX15  # Set delay timer
             elif w[4] == 0x8:
-                opcode_id = op.OP_FX18
+                opcode_id = op.OP_FX18  # Set sound timer
             elif w[4] == 0xE:
-                opcode_id = op.OP_FX1E
+                opcode_id = op.OP_FX1E  # Mem add-assign
         elif w[3] == 0x2:
-            opcode_id = op.OP_FX29
+            opcode_id = op.OP_FX29  # Set sprite location
         elif w[3] == 0x3:
-            opcode_id = op.OP_FX33
+            opcode_id = op.OP_FX33  # Store BCD
         elif w[3] == 0x5:
-            opcode_id = op.OP_FX55
+            opcode_id = op.OP_FX55  # Store V0 to VX
         elif w[3] == 0x6:
-            opcode_id = op.OP_FX65
+            opcode_id = op.OP_FX65  # Fill F0 to VX
 
     if opcode_id == -1:
         invalid_opcode(w)
@@ -138,44 +138,6 @@ def bytes_to_int(bytes, endianness="big"):
 def invalid_opcode(opcode):
     raise ValueError(f"Invalid opcode: {opcode}")
 
-
-OPCODE_PATTERNS = {
-    "0XXX": (0, decode_address),
-    "00E0": (1, lambda c: None),  # Nothing to decode
-    "00EE": (2, lambda c: None),  # Nothing to decode
-    "1XXX": (3, decode_address),
-    "2XXX": (4, decode_address),
-    "3XXX": (5, decode_reg_id_and_address),
-    "4XXX": (6, decode_reg_id_and_address),
-    "5XX0": (7, decode_double_reg_id),
-    "6XXX": (8, decode_reg_id_and_address),
-    "7XXX": (9, decode_reg_id_and_address),
-    "8XX0": (10, decode_double_reg_id),
-    "8XX1": (11, decode_double_reg_id),
-    "8XX2": (12, decode_double_reg_id),
-    "8XX3": (13, decode_double_reg_id),
-    "8XX4": (14, decode_double_reg_id),
-    "8XX5": (15, decode_double_reg_id),
-    "8XX6": (16, decode_double_reg_id),
-    "8XX7": (17, decode_double_reg_id),
-    "8XXE": (18, decode_double_reg_id),
-    "9XX0": (19, decode_double_reg_id),
-    "AXXX": (20, decode_address),
-    "BXXX": (21, decode_address),
-    "CXXX": (22, decode_reg_id_and_address),
-    "DXXX": (23, decode_double_reg_id_and_address),
-    "EX9E": (24, decode_reg_id),
-    "EXA1": (25, decode_reg_id),
-    "FX07": (26, decode_reg_id),
-    "FX0A": (27, decode_reg_id),
-    "FX15": (28, decode_reg_id),
-    "FX18": (29, decode_reg_id),
-    "FX1E": (30, decode_reg_id),
-    "FX29": (31, decode_reg_id),
-    "FX33": (32, decode_reg_id),
-    "FX55": (33, decode_reg_id),
-    "FX65": (34, decode_reg_id),
-}
 
 OPCODE_ID_TO_DECODER = {
     op.OP_0NNN: decode_address,
