@@ -88,7 +88,10 @@ def decode_words(code, f=1, t=-1):
     for byte in code:
         words.extend(w2i(byte))
 
-    words = words[f:t + 1]
+    if t != -1:
+        words = words[f:t + 1]
+    else:
+        words = words[f:]
 
     val = 0
 
@@ -107,7 +110,7 @@ def decode_reg_id_and_address(c):
 
 
 def decode_reg_id(c):
-    return decode_words(c, 1, 1)
+    return decode_words(c, 1, 1),
 
 
 def decode_double_reg_id(c):
@@ -119,7 +122,7 @@ def decode_double_reg_id_and_address(c):
 
 
 def b2i(b):
-    return int(b[0])
+    return int(b)
 
 
 def w2i(b):

@@ -5,6 +5,17 @@ class Arithmetics:
     def __init__(self, memory):
         self.memory = memory
 
+    def assign_val(self, vx, nn):
+        """ 8XY0 """
+        self.memory.reg[vx] = nn
+
+    def assign_add_val(self, vx, nn):
+        """ 8XY0 """
+        # Set carry
+        self.memory.reg[-1] = int(self.memory.reg[vx] + nn > 255)  # Is it correct to do this for constant addition?
+
+        self.memory.reg[vx] = np.add(self.memory.reg[vx], nn)
+
     def assign(self, vx, vy):
         """ 8XY0 """
         self.memory.reg[vx] = self.memory.reg[vy]
@@ -23,10 +34,14 @@ class Arithmetics:
 
     def assign_add(self, vx, vy):
         """ 8XY4 """
+        self.memory.reg[-1] = int(self.memory.reg[vx] + self.memory.reg[vy] > 255)
+
         self.memory.reg[vx] = np.add(self.memory.reg[vx], self.memory.reg[vy])
 
     def assign_subtract(self, vx, vy):
         """ 8XY5 """
+        self.memory.reg[-1] = int(self.memory.reg[vx] > self.memory.reg[vy])
+
         self.memory.reg[vx] = np.subtract(self.memory.reg[vx], self.memory.reg[vy])
 
     def bit_shift_right(self, vx, vy):
@@ -37,6 +52,8 @@ class Arithmetics:
 
     def assign_subtract_inverse(self, vx, vy):
         """ 8XY7 """
+        self.memory.reg[-1] = int(self.memory.reg[vy] > self.memory.reg[vx])
+
         self.memory.reg[vx] = np.subtract(self.memory.reg[vy], self.memory.reg[vx])
 
     def bit_shift_left(self, vx, vy):
