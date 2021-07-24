@@ -11,9 +11,6 @@ class Arithmetics:
 
     def assign_add_val(self, vx, nn):
         """ 8XY0 """
-        # Set carry
-        self.memory.reg[-1] = int(self.memory.reg[vx] + nn > 255)  # Is it correct to do this for constant addition?
-
         self.memory.reg[vx] = np.add(self.memory.reg[vx], nn)
 
     def assign(self, vx, vy):
@@ -34,7 +31,7 @@ class Arithmetics:
 
     def assign_add(self, vx, vy):
         """ 8XY4 """
-        self.memory.reg[-1] = int(self.memory.reg[vx] + self.memory.reg[vy] > 255)
+        self.memory.reg[-1] = int(int(self.memory.reg[vx]) + int(self.memory.reg[vy]) > 255)
 
         self.memory.reg[vx] = np.add(self.memory.reg[vx], self.memory.reg[vy])
 

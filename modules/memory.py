@@ -32,6 +32,8 @@ class Memory:
         # Sound timer register
         self._sound_reg = np.array([0], dtype="uint8")
 
+        self._pc = np.array([0x200], dtype="uint16")
+
     @property
     def mem_reg(self):
         return self._mem_reg[0]
@@ -63,6 +65,14 @@ class Memory:
     @stack_pointer.setter
     def stack_pointer(self, v):
         self._stack_pointer[0] = v
+
+    @property
+    def pc(self):
+        return self._pc[0]
+
+    @pc.setter
+    def pc(self, v):
+        self._pc[0] = v
 
 
 FONT_DATA = [

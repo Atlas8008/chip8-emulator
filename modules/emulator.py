@@ -24,104 +24,98 @@ class Emulator:
         self.arithmetics = Arithmetics(self.memory)
         self.input = Input()
 
-        self.delay_timer = Thread(target=self.delay_timer_fun)
-        self.sound_timer = Thread(target=self.sound_timer_fun)
+        self.delay_timer = Thread(target=self.delay_timer_fun, daemon=True)
+        self.sound_timer = Thread(target=self.sound_timer_fun, daemon=True)
 
-        self._pc = np.zeros(1, dtype="uint16")
         self.jumped = False
+
+        self.verbosity = 0
 
         self.OPCODE_TO_ACTION = self.define_opcode_actions()
 
         with open(fname, "rb") as f:
             self.prog = f.read()
 
-            print(self.prog)
-            print(len(self.prog))
+            if self.verbosity >= 1:
+                print(self.prog)
+                print(len(self.prog))
 
-    @property
-    def pc(self):
-        return self._pc[0]
-
-    @pc.setter
-    def pc(self, val):
-        self._pc[0] = val
+            progbytes_to_memory(self.prog, self.memory)
 
     def run(self):
-        self.pc = 0
         self.delay_timer.start()
         self.sound_timer.start()
 
         while True:
             self.jumped = False
 
-            opcode = fetch(self.pc, self.prog)
+            opcode = fetch(self.memory)
 
             # Skip empty opcodes
             #if not opcode:
             #    continue
+            if self.verbosity >= 1:
+                print("Opcode: ", opcode)
+                print("Opcode hex: ", bytes(opcode).hex())
 
             opcode_id, args = decode(opcode)
 
             action = self.OPCODE_TO_ACTION[opcode_id]
 
-            print("Opcode: ", opcode)
-            print("Opcode: ", opcode.hex())
-            print("Opcode id: ", opcode_id)
-            print("Opcode args:", args)
+            if self.verbosity >= 1:
+                print("Opcode id: ", opcode_id)
+                print("Opcode args:", args)
 
             action(*args)
 
             if not self.jumped:
-                self.pc += 1
+                self.memory.pc += 0x2
 
     def jump_to_subroutine(self, addr):
-        self.memory.stack_pointer += 2
-        print(self.memory.stack_pointer)
-        print("Jump to", addr)
+        self.memory.stack_pointer += 0x2
         self.memory.mem[self.memory.stack_pointer:self.memory.stack_pointer + 2] = \
-            np.array([self.pc // 2 ** 8, self.pc % 2 ** 8])
+            np.array([self.memory.pc // 2 ** 8, self.memory.pc % 2 ** 8])
 
-        self.pc = addr - 0x200
+        self.memory.pc = addr
         self.jumped = True
 
     def return_from_subroutine(self):
         vals = self.memory.mem[self.memory.stack_pointer:self.memory.stack_pointer + 2]
 
-        self.pc = vals[0] * 2 ** 8 + vals[1]
-        self.pc += 1 # Go to next instruction after jumping back
-        print("Jump back to", self.pc)
+        self.memory.pc = vals[0] * 2 ** 8 | vals[1]
+        self.memory.pc += 2  # Go to next instruction after jumping back
 
         self.memory.stack_pointer -= 2
 
         self.jumped = True
 
     def jump_to_address(self, addr):
-        self.pc = addr - 0x200
+        self.memory.pc = addr
         self.jumped = True
 
     def jump_to_address_relative(self, addr):
         # Jump to adress value + v0
-        self.pc = addr + self.memory.reg[0] - 0x200
+        self.memory.pc = addr + self.memory.reg[0]
         self.jumped = True
 
     def skip_if_reg_num_equal(self, vx, num):
         if self.memory.reg[vx] == num:
-            self.pc += 2
+            self.memory.pc += 4
             self.jumped = True
 
     def skip_if_reg_num_unequal(self, vx, num):
         if self.memory.reg[vx] != num:
-            self.pc += 2
+            self.memory.pc += 4
             self.jumped = True
 
     def skip_if_regs_equal(self, vx, vy):
         if self.memory.reg[vx] == self.memory.reg[vy]:
-            self.pc += 2
+            self.memory.pc += 4
             self.jumped = True
 
     def skip_if_regs_unequal(self, vx, vy):
         if self.memory.reg[vx] != self.memory.reg[vy]:
-            self.pc += 2
+            self.memory.pc += 4
             self.jumped = True
 
     def set_mem_address_pointer(self, addr):
@@ -132,19 +126,21 @@ class Emulator:
 
     def skip_if_key_pressed(self, vx):
         if self.input.key_pressed(self.memory.reg[vx]):
-            self.pc += 2
+            self.memory.pc += 4
             self.jumped = True
 
     def skip_if_key_unpressed(self, vx):
         if self.input.key_unpressed(self.memory.reg[vx]):
-            self.pc += 2
+            self.memory.pc += 4
             self.jumped = True
 
     def get_delay_timer(self, vx):
         self.memory.reg[vx] = self.memory.delay_reg
 
     def wait_for_keypress(self, vx):
-        self.input.wait_for_keypress(self.memory.reg[vx])
+        key = self.input.wait_for_keypress()
+
+        self.memory.reg[vx] = key
 
     def set_delay_timer(self, vx):
         self.memory.delay_reg = self.memory.reg[vx]

@@ -31,15 +31,24 @@ class GraphicsEmulator:
         x = self.memory.reg[vx]
         y = self.memory.reg[vy]
         width = 8
-        height = n + 1
+        height = n
 
         sprite_data = self.memory.mem[self.memory.mem_reg:self.memory.mem_reg + height]
         sprite_data = byte_to_bits(sprite_data)
 
-        orig_content = self.display_px[y:y + height, x:x + width]
+        orig_content = self.display_px[y:y + height, x:x + width]  # TODO: Screen wraparound
+
+        # Zero pad orig content
+        """orig_content = np.pad(
+            orig_content,
+            [
+                [-min(0, y), max(y + height, self.display_px.shape[0]) - self.display_px.shape[0]],
+                [-min(0, x), max(x + width, self.display_px.shape[1]) - self.display_px.shape[1]],
+            ],
+        )
 
         # Allow sprites at the right border by cropping the sprite to fit into the window
-        sprite_data = sprite_data[:, :orig_content.shape[1]]
+        sprite_data = sprite_data[:, :orig_content.shape[1]]"""
 
         # Check, if any value is flipped from set to unset during xor to set flag or unset it
         self.memory.reg[-1] = np.any(np.logical_and(orig_content, sprite_data))

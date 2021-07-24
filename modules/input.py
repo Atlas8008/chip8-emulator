@@ -1,3 +1,4 @@
+import sys
 import pygame
 
 
@@ -44,25 +45,42 @@ KEY_MAPPINGS_LAYOUT = {
 class Input:
     def __init__(self):
         # Active key mapping
-        self.acm = KEY_MAPPINGS
+        self.acm = KEY_MAPPINGS_LAYOUT
 
     def key_pressed(self, val):
-        key = self.acm[val]
+        keys = self.acm[val]
 
-        return pygame.key.get_pressed()[key]
+        return any(pygame.key.get_pressed()[k] for k in keys)
 
     def key_unpressed(self, val):
-        key = self.acm[val]
+        keys = self.acm[val]
 
-        return not pygame.key.get_pressed()[key]
+        return not any(pygame.key.get_pressed()[k] for k in keys)
 
-    def wait_for_keypress(self, val):
-        key = self.acm[val]
+    def wait_for_keypress(self):
 
         pygame.event.clear()
         while True:
             event = pygame.event.wait()
 
-            if event.type == pygame.KEYDOWN and pygame.key.get_pressed()[key]:
-                return
+            if event.type == pygame.KEYDOWN:
+                pressed = pygame.key.get_pressed()
+
+                keyval = -1
+
+                for v, keys in self.acm.items():
+                    for k in keys:
+                        if pressed[k]:
+                            keyval = v
+                            break
+
+                    if keyval != -1:
+                        break
+
+                if keyval != -1:
+                    return keyval
+                elif pressed[pygame.K_ESCAPE]:
+                    #pygame.display.quit()
+                    pygame.quit()
+                    exit()
 

@@ -1,10 +1,24 @@
+import numpy as np
 import modules.opcodes as op
 
-__all__ = ["fetch", "decode"]
+__all__ = ["fetch", "decode", "progbytes_to_memory"]
 
 
-def fetch(p_id, byteprog):
-    return byteprog[2 * p_id:2 * p_id + 2]
+def progbytes_to_memory(bytes, memory, addr=0x200, endianness="big"):
+    mem = np.zeros((len(bytes)), dtype="uint8")
+
+    if endianness == "big":
+        for i in range(len(mem) // 2):
+            mem[2 * i] = bytes[2 * i]
+            mem[2 * i + 1] = bytes[2 * i + 1]
+    else:
+        raise NotImplementedError("Endianness not implemented: " + endianness)
+
+    memory.mem[addr:addr + len(mem)] = mem
+
+
+def fetch(memory):
+    return memory.mem[memory.pc], memory.mem[memory.pc + 1]
 
 
 def decode(bytes):
@@ -55,25 +69,25 @@ def decode(bytes):
         elif w[-1] == 0x1:
             opcode_id = op.OP_EXA1  # Skip next if not key
     elif w[0] == 0xF:
-        if w[3] == 0x0:
-            if w[4] == 0x7:
+        if w[2] == 0x0:
+            if w[3] == 0x7:
                 opcode_id = op.OP_FX07  # Timer
-            elif w[4] == 0xA:
+            elif w[3] == 0xA:
                 opcode_id = op.OP_FX0A  # Wait + assign key press
-        elif w[3] == 0x1:
-            if w[4] == 0x5:
+        elif w[2] == 0x1:
+            if w[3] == 0x5:
                 opcode_id = op.OP_FX15  # Set delay timer
-            elif w[4] == 0x8:
+            elif w[3] == 0x8:
                 opcode_id = op.OP_FX18  # Set sound timer
-            elif w[4] == 0xE:
+            elif w[3] == 0xE:
                 opcode_id = op.OP_FX1E  # Mem add-assign
-        elif w[3] == 0x2:
+        elif w[2] == 0x2:
             opcode_id = op.OP_FX29  # Set sprite location
-        elif w[3] == 0x3:
+        elif w[2] == 0x3:
             opcode_id = op.OP_FX33  # Store BCD
-        elif w[3] == 0x5:
+        elif w[2] == 0x5:
             opcode_id = op.OP_FX55  # Store V0 to VX
-        elif w[3] == 0x6:
+        elif w[2] == 0x6:
             opcode_id = op.OP_FX65  # Fill F0 to VX
 
     if opcode_id == -1:
@@ -131,21 +145,14 @@ def w2i(b):
     return i // 16, i % 16
 
 
-def bytes_to_int(bytes, endianness="big"):
-    if endianness == "big":
-        return 16 * int(bytes[1][0]) + int(bytes[0][0])
-    else:
-        raise NotImplementedError()
-
-
 def invalid_opcode(opcode):
     raise ValueError(f"Invalid opcode: {opcode}")
 
 
 OPCODE_ID_TO_DECODER = {
     op.OP_0NNN: decode_address,
-    op.OP_00E0: lambda c: None,  # Nothing to decode
-    op.OP_00EE: lambda c: None,  # Nothing to decode
+    op.OP_00E0: lambda c: tuple(),  # Nothing to decode
+    op.OP_00EE: lambda c: tuple(),  # Nothing to decode
     op.OP_1NNN: decode_address,
     op.OP_2NNN: decode_address,
     op.OP_3XNN: decode_reg_id_and_address,
