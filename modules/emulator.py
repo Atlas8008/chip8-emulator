@@ -9,18 +9,17 @@ from .graphics import GraphicsEmulator
 from .memory import Memory
 from .sound_emu import SoundEmulator
 from .arithmetics import Arithmetics
-from .input import Input
+from .input import Input, RESET
 
 import modules.opcodes as op
 
-# TODO: Set interpreter frequency
-# TODO: Implement program counter as index and put program code in memory
 
 class Emulator:
     def __init__(self, fname):
+        self.fname = fname
         self.memory = Memory()
         self.graphics = GraphicsEmulator(memory=self.memory)
-        self.sound = SoundEmulator(memory=self.memory)
+        self.sound = SoundEmulator()
         self.arithmetics = Arithmetics(self.memory)
         self.input = Input()
 
@@ -28,8 +27,10 @@ class Emulator:
         self.sound_timer = Thread(target=self.sound_timer_fun, daemon=True)
 
         self.jumped = False
+        self.paused = False
 
         self.verbosity = 0
+        self.frequency = 600
 
         self.OPCODE_TO_ACTION = self.define_opcode_actions()
 
@@ -42,11 +43,37 @@ class Emulator:
 
             progbytes_to_memory(self.prog, self.memory)
 
+    def reset(self):
+        self.paused = True
+        self.memory = Memory()
+
+        self.graphics.reinit(self.memory)
+        self.arithmetics.memory = self.memory
+        #self.input = Input()
+
+        self.jumped = False
+
+        with open(self.fname, "rb") as f:
+            self.prog = f.read()
+
+            if self.verbosity >= 1:
+                print(self.prog)
+                print(len(self.prog))
+
+            progbytes_to_memory(self.prog, self.memory)
+
+        self.paused = False
+
     def run(self):
         self.delay_timer.start()
         self.sound_timer.start()
 
         while True:
+            update_ret = self.input.update_keys()
+
+            if update_ret == RESET:
+                self.reset()
+
             self.jumped = False
 
             opcode = fetch(self.memory)
@@ -70,6 +97,8 @@ class Emulator:
 
             if not self.jumped:
                 self.memory.pc += 0x2
+
+            time.sleep(1 / self.frequency)
 
     def jump_to_subroutine(self, addr):
         self.memory.stack_pointer += 0x2
@@ -135,6 +164,7 @@ class Emulator:
             self.jumped = True
 
     def get_delay_timer(self, vx):
+        #print("Get delay", self.memory.delay_reg)
         self.memory.reg[vx] = self.memory.delay_reg
 
     def wait_for_keypress(self, vx):
@@ -143,6 +173,7 @@ class Emulator:
         self.memory.reg[vx] = key
 
     def set_delay_timer(self, vx):
+        #print("Set delay", self.memory.reg[vx])
         self.memory.delay_reg = self.memory.reg[vx]
 
     def set_sound_timer(self, vx):
@@ -180,17 +211,23 @@ class Emulator:
 
     def delay_timer_fun(self):
         while True:
-            time.sleep(1 / 60)
 
-            if self.memory.delay_reg > 0:
-                self.memory.delay_reg -= 1
+            time.sleep(1 / 60)
+            if not self.paused:
+                if self.memory.delay_reg > 0:
+                    self.memory.delay_reg -= 1
 
     def sound_timer_fun(self):
         while True:
             time.sleep(1 / 60)
 
-            if self.memory.sound_reg > 0:
-                self.memory.sound_reg -= 1
+            if not self.paused:
+                if self.memory.sound_reg > 0:
+                    self.memory.sound_reg -= 1
+
+                    self.sound.sound_on()
+                else:
+                    self.sound.sound_off()
 
     def define_opcode_actions(self):
         return {
